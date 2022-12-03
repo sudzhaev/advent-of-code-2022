@@ -63,7 +63,7 @@ fun GameOption.playAgainst(otherOption: GameOption): Int {
 
 fun day2part1() {
     var totalScore = 0
-    readSystemIn { line ->
+    readStdin { line ->
         val (request, response) = parsePart1(line)
         totalScore += response.playAgainst(request)
     }
@@ -94,7 +94,7 @@ fun resolveResponse(request: GameOption, targetResult: GameResult): GameOption {
 
 fun day2part2() {
     var totalScore = 0
-    readSystemIn { line ->
+    readStdin { line ->
         val split = line.split(" ")
         val request = parseRequest(split[0])
         val targetResult = parseTargetResult(split[1])

@@ -6,7 +6,7 @@ import kotlin.math.max
 fun day1part1() {
     var maxCalories = 0
     var currentCalories = 0
-    readSystemIn { line ->
+    readStdin { line ->
         val calories = line.toIntOrNull()
         if (calories != null) {
             currentCalories += calories
@@ -33,7 +33,7 @@ fun day1part2() {
     }
 
     var currentCalories = 0
-    readSystemIn { line ->
+    readStdin { line ->
         val calories = line.toIntOrNull()
         if (calories != null) {
             currentCalories += calories

@@ -1,3 +1,7 @@
+import java.io.InputStreamReader
+
+// https://adventofcode.com/2022/day/3
+
 fun Char.toPriority(): Int {
     return code - (if (isLowerCase()) 96 else 38)
 }
@@ -19,7 +23,7 @@ fun day3part1() {
     }
 
     var totalPriority = 0
-    readSystemIn { line ->
+    readStdin { line ->
         totalPriority += findPriority(line)
     }
     println("total priority is $totalPriority")
@@ -27,35 +31,28 @@ fun day3part1() {
 
 
 fun day3part2() {
-    fun readSystemInByChunks(chunkSize: Int, block: (List<String>) -> Unit) {
-        val list = mutableListOf<String>()
-        readSystemIn { line ->
-            if (list.size < chunkSize) {
-                list += line
-            } else {
-                block(list)
-                list.clear()
-                list.add(line)
-            }
+    fun chunkReadStdin(chunkSize: Int, block: (List<String>) -> Unit) {
+        InputStreamReader(System.`in`).useLines { lines ->
+            lines.windowed(size = chunkSize, step = chunkSize).forEach(block)
         }
-        block(list)
     }
 
     fun findPriority(lines: List<String>): Int {
-        val frequencyMap = mutableMapOf<Char, Int>()
+        val frequencyMap = IntArray(52)
         for (line in lines) {
             for (char in line.toSet()) {
-                val currentFrequency = frequencyMap.merge(char, 1, Int::plus)
-                if (currentFrequency == lines.size) {
-                    return char.toPriority()
+                val priority = char.toPriority()
+                val frequency = ++frequencyMap[priority - 1]
+                if (frequency == lines.size) {
+                    return priority
                 }
             }
         }
-        return 0
+        error("no common character found")
     }
 
     var totalPriority = 0
-    readSystemInByChunks(3) { lines ->
+    chunkReadStdin(3) { lines ->
         totalPriority += findPriority(lines)
     }
     println("total priority is $totalPriority")
