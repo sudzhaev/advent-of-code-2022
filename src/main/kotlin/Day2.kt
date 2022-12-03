@@ -1,5 +1,3 @@
-import java.io.InputStreamReader
-
 // https://adventofcode.com/2022/day/2
 
 private const val LOST = 0
@@ -48,11 +46,13 @@ fun GameOption.playAgainst(otherOption: GameOption): Int {
             GameOption.PAPER -> LOST
             GameOption.SCISSORS -> WIN
         }
+
         GameOption.PAPER -> when (otherOption) {
             GameOption.ROCK -> WIN
             GameOption.PAPER -> DRAW
             GameOption.SCISSORS -> LOST
         }
+
         GameOption.SCISSORS -> when (otherOption) {
             GameOption.ROCK -> LOST
             GameOption.PAPER -> WIN
@@ -63,7 +63,7 @@ fun GameOption.playAgainst(otherOption: GameOption): Int {
 
 fun day2part1() {
     var totalScore = 0
-    InputStreamReader(System.`in`).forEachLine { line ->
+    readSystemIn { line ->
         val (request, response) = parsePart1(line)
         totalScore += response.playAgainst(request)
     }
@@ -77,12 +77,14 @@ fun resolveResponse(request: GameOption, targetResult: GameResult): GameOption {
             GameResult.DRAW -> GameOption.ROCK
             GameResult.WIN -> GameOption.PAPER
         }
+
         GameOption.PAPER -> when (targetResult) {
             GameResult.LOSE -> GameOption.ROCK
             GameResult.DRAW -> GameOption.PAPER
             GameResult.WIN -> GameOption.SCISSORS
         }
-        GameOption.SCISSORS ->  when (targetResult) {
+
+        GameOption.SCISSORS -> when (targetResult) {
             GameResult.LOSE -> GameOption.PAPER
             GameResult.DRAW -> GameOption.SCISSORS
             GameResult.WIN -> GameOption.ROCK
@@ -92,7 +94,7 @@ fun resolveResponse(request: GameOption, targetResult: GameResult): GameOption {
 
 fun day2part2() {
     var totalScore = 0
-    InputStreamReader(System.`in`).forEachLine { line ->
+    readSystemIn { line ->
         val split = line.split(" ")
         val request = parseRequest(split[0])
         val targetResult = parseTargetResult(split[1])
