@@ -1,7 +1,6 @@
 import kotlin.math.absoluteValue
 import kotlin.math.sign
 
-
 typealias Coordinate = Pair<Int, Int>
 
 val Coordinate.x
@@ -9,54 +8,95 @@ val Coordinate.x
 val Coordinate.y
     get() = second
 
-fun day9(length: Int) {
-    val offsetMap = mapOf(
-        'R' to (1 to 0),
-        'L' to (-1 to 0),
-        'U' to (0 to 1),
-        'D' to (0 to -1)
-    )
-    val noOffset = 0 to 0
+private val offsetMap = mapOf(
+    'R' to (1 to 0),
+    'L' to (-1 to 0),
+    'U' to (0 to 1),
+    'D' to (0 to -1)
+)
 
-    fun move(knot: Coordinate, offset: Coordinate): Coordinate {
+private val noOffset = 0 to 0
+
+interface Rope {
+    fun move(offset: Coordinate): Rope
+    fun tail(): Coordinate
+}
+
+class MutableRope(length: Int) : Rope {
+    private val knots = MutableList(length) { 0 to 0 }
+
+    override fun tail(): Coordinate {
+        return knots.last()
+    }
+
+    override fun move(offset: Coordinate): Rope {
+        knots[0] = moveKnot(knots.first(), offset)
+        for (i in knots.indices.drop(1)) {
+            val knotOffset = getOffset(knots[i - 1], knots[i])
+            knots[i] = moveKnot(knots[i], knotOffset)
+        }
+        return this
+    }
+
+    private fun moveKnot(knot: Coordinate, offset: Coordinate): Coordinate {
         if (offset == noOffset) {
             return knot
         }
         return knot.x + offset.x to knot.y + offset.y
     }
 
-    fun getOffset(knot1: Coordinate, knot2: Coordinate): Coordinate {
-        // touching is a boolean that indicates whether the two knots are touching both horizontally, vertically and diagonally
-        val touching = (knot1.x - knot2.x).absoluteValue <= 1 && (knot1.y - knot2.y).absoluteValue <= 1
-        if (touching) {
-            return noOffset
-        }
-        return (knot1.x - knot2.x).sign to (knot1.y - knot2.y).sign
-    }
-
-    fun moveRope(rope: MutableList<Coordinate>, headOffset: Coordinate) {
-        rope[0] = move(rope.first(), headOffset)
-        for (i in rope.indices.drop(1)) {
-            val offset = getOffset(rope[i - 1], rope[i])
-            rope[i] = move(rope[i], offset)
+    private fun getOffset(knot1: Coordinate, knot2: Coordinate): Coordinate {
+        return if (isTouching(knot1, knot2)) {
+            noOffset
+        } else {
+            (knot1.x - knot2.x).sign to (knot1.y - knot2.y).sign
         }
     }
 
-    val rope = MutableList(length) { 0 to 0 }
-    val tailPositionSet = mutableSetOf<Coordinate>()
+    private fun isTouching(knot1: Coordinate, knot2: Coordinate): Boolean {
+        return (knot1.x - knot2.x).absoluteValue <= 1 && (knot1.y - knot2.y).absoluteValue <= 1
+    }
+}
 
-    readStdin { line ->
+class TailTracingRope(private var rope: Rope) : Rope {
+
+    private val tailCoordinates = mutableSetOf<Coordinate>()
+
+    override fun move(offset: Coordinate): Rope {
+        rope = rope.move(offset)
+        tailCoordinates += rope.tail()
+        return this
+    }
+
+    override fun tail(): Coordinate {
+        return rope.tail()
+    }
+
+    fun tailPositionNumber(): Int {
+        return tailCoordinates.size
+    }
+}
+
+fun day9() {
+    fun parse(line: String): Pair<Coordinate, Int> {
         val split = line.split(' ')
         val direction = split[0].first()
         val distance = split[1].toInt()
         val offset = offsetMap[direction] ?: error("invalid direction: $direction")
-        for (i in 0 until distance) {
-            moveRope(rope, offset)
-            tailPositionSet += rope.last()
-        }
+        return offset to distance
     }
 
-    println(tailPositionSet.size)
+    val part1rope = TailTracingRope(MutableRope(2))
+    val part2rope = TailTracingRope(MutableRope(10))
+    readStdin { line ->
+        val (offset, distance) = parse(line)
+        for (i in 1..distance) {
+            part1rope.move(offset)
+            part2rope.move(offset)
+        }
+    }
+    println(part1rope.tailPositionNumber())
+    println(part2rope.tailPositionNumber())
 }
 
 // part 1 – day9(2)
