@@ -59,12 +59,11 @@ class MutableRope(length: Int) : Rope {
 }
 
 class TailTracingRope(private var rope: Rope) : Rope {
-
-    private val tailCoordinates = mutableSetOf<Coordinate>()
+    private val tailTrace = mutableSetOf<Coordinate>()
 
     override fun move(offset: Coordinate): Rope {
         rope = rope.move(offset)
-        tailCoordinates += rope.tail()
+        tailTrace += rope.tail()
         return this
     }
 
@@ -72,8 +71,8 @@ class TailTracingRope(private var rope: Rope) : Rope {
         return rope.tail()
     }
 
-    fun tailPositionNumber(): Int {
-        return tailCoordinates.size
+    fun tailTraceSize(): Int {
+        return tailTrace.size
     }
 }
 
@@ -95,9 +94,6 @@ fun day9() {
             part2rope.move(offset)
         }
     }
-    println(part1rope.tailPositionNumber())
-    println(part2rope.tailPositionNumber())
+    println(part1rope.tailTraceSize())
+    println(part2rope.tailTraceSize())
 }
-
-// part 1 – day9(2)
-// part 2 – day9(10)
