@@ -7,6 +7,23 @@ interface TickSubscriber {
     fun onTick(x: Int, tick: Int)
 }
 
+class TickMachine(private var x: Int = 1) {
+    private var tick = 0
+    private val subscribers = mutableListOf<TickSubscriber>()
+
+    fun subscribe(subscriber: TickSubscriber) {
+        subscribers += subscriber
+    }
+
+    fun execute(operation: Operation) {
+        for (i in 1..operation.ticks) {
+            tick++
+            subscribers.forEach { it.onTick(x, tick) }
+        }
+        x += operation.increment
+    }
+}
+
 // part 1
 // result – 14720
 class SignalStrengthAccumulator(private val observableTicks: Set<Int>) : TickSubscriber {
@@ -22,42 +39,24 @@ class SignalStrengthAccumulator(private val observableTicks: Set<Int>) : TickSub
 // part 2
 // result – FZBPBFZF
 class CRTDisplay(private val width: Int = 40) : TickSubscriber {
-    private val crtString = StringBuilder()
-    private var counter = 0
+    private val buffer = StringBuilder()
+    private var offset = 0
+
+    private fun isVisible(x: Int): Boolean {
+        return offset == x || offset == x - 1 || offset == x + 1
+    }
 
     override fun onTick(x: Int, tick: Int) {
-        val visiblePixels = setOf(x, x - 1, x + 1)
-        if (counter in visiblePixels) {
-            crtString.append('#')
-        } else {
-            crtString.append('.')
-        }
-        counter++
-        if (counter == width) {
-            counter = 0
+        val pixel = if (isVisible(x)) '#' else '.'
+        buffer.append(pixel)
+        if (++offset == width) {
+            buffer.append('\n')
+            offset = 0
         }
     }
 
     fun render(consumer: (String) -> Unit = ::println) {
-        val message = crtString.chunked(width).joinToString("\n")
-        consumer(message)
-    }
-}
-
-class TickMachine(private var x: Int = 1) {
-    private var tick = 0
-    private val subscribers = mutableListOf<TickSubscriber>()
-
-    fun subscribe(subscriber: TickSubscriber) {
-        subscribers += subscriber
-    }
-
-    fun execute(operation: Operation) {
-        for (i in 1..operation.ticks) {
-            tick++
-            subscribers.forEach { it.onTick(x, tick) }
-        }
-        x += operation.increment
+        consumer(buffer.toString())
     }
 }
 
