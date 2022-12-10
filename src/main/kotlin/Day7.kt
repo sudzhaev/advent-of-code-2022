@@ -1,98 +1,117 @@
 import java.io.InputStreamReader
+import java.util.*
 
-interface FileSystemEntry {
-    val parent: FileSystemEntry?
+interface File {
     val name: String
-    fun size(directoryToSizeMap: MutableList<Int>): Int
-
-    fun addChild(entry: FileSystemEntry)
-
-    fun findChild(name: String): FileSystemEntry
+    fun <T> accept(visitor: FileVisitor<T>): T
 }
 
-class Directory(override val name: String, override val parent: FileSystemEntry?) : FileSystemEntry {
-    override fun size(directoryToSizeMap: MutableList<Int>): Int {
-        val size = children.sumOf { it.size(directoryToSizeMap) }
-        directoryToSizeMap += size
-        return size
-    }
+interface FileVisitor<T> {
+    fun visit(plainFile: PlainFile): T
+    fun visit(directory: Directory): T
+}
 
-    private val children = mutableListOf<FileSystemEntry>()
+class PlainFile(override val name: String, val size: Int) : File {
 
-    override fun addChild(entry: FileSystemEntry) {
-        children += entry
-    }
-
-    override fun findChild(name: String): FileSystemEntry {
-        return children.find { it.name == name }!!
+    override fun <T> accept(visitor: FileVisitor<T>): T {
+        return visitor.visit(this)
     }
 }
 
-class File(override val name: String, val size: Int, override val parent: FileSystemEntry?) : FileSystemEntry {
-    override fun size(directoryToSizeMap: MutableList<Int>): Int {
-        return size
+class Directory(override val name: String) : File {
+
+    val children = mutableMapOf<String, File>()
+
+    override fun <T> accept(visitor: FileVisitor<T>): T {
+        return visitor.visit(this)
     }
 
-    override fun addChild(entry: FileSystemEntry) {
-        error("no children of file")
+    fun addChild(entry: File) {
+        children[entry.name] = entry
     }
 
-    override fun findChild(name: String): FileSystemEntry {
-        error("no children of file")
+    fun findChild(name: String): File {
+        return children[name] ?: error("child $name not found in directory ${this.name}")
+    }
+}
+
+class DirectorySizeCollector : FileVisitor<Int> {
+    val list = mutableListOf<Int>()
+
+    override fun visit(plainFile: PlainFile): Int {
+        return plainFile.size
+    }
+
+    override fun visit(directory: Directory): Int {
+        val totalDirSize = directory.children.values.sumOf { it.accept(this) }
+        list += totalDirSize
+        return totalDirSize
+    }
+
+    fun total(): Int {
+        // '/' is visited last
+        return list.last()
     }
 }
 
 // skipping
 // $ cd /
 // $ ls
-fun readStdin7(block: (String) -> Unit) {
+fun day7readStdin(block: (String) -> Unit) {
     InputStreamReader(System.`in`).useLines { lines -> lines.drop(2).forEach(block) }
 }
 
+private const val COMMAND_PREFIX = "$ "
+
 fun day7() {
-    val root = Directory("/", null)
-    var currentEntry: FileSystemEntry = root
-    readStdin7 { line ->
-        if (line.startsWith("$")) {
-            val command = line.drop(2)
+    val root = Directory("/")
+    val visitStack = Stack<Directory>()
+    var pwd = visitStack.push(root)
+    day7readStdin { line ->
+        if (line.startsWith(COMMAND_PREFIX)) {
+            val command = line.drop(COMMAND_PREFIX.length)
             if (command.startsWith("cd")) {
-                val directory = command.split(" ")[1]
-                currentEntry = when (directory) {
-                    ".." -> currentEntry.parent!!
-                    else -> currentEntry.findChild(directory)
+                val targetDirectoryName = command.split(" ")[1]
+                pwd = when (targetDirectoryName) {
+                    ".." -> {
+                        visitStack.pop()
+                        visitStack.peek() ?: error("parent directory not found. pwd = ${pwd.name}")
+                    }
+                    else -> {
+                        val directory = pwd.findChild(targetDirectoryName) as? Directory
+                            ?: error("cannot 'cd' into non-directory")
+                        visitStack.push(directory)
+                        directory
+                    }
                 }
-                return@readStdin7
+            } else {
+                check(command == "ls")
             }
-            if (command == "ls") {
-                return@readStdin7
-            }
+            return@day7readStdin
         }
 
+        // processing 'ls'
         val split = line.split(" ")
-        val fileSize = split[0].toIntOrNull()
-        if (fileSize != null) {
-            val fileName = split[1]
-            val file = File(fileName, fileSize, currentEntry)
-            currentEntry.addChild(file)
+        check(split.size == 2)
+        val file = if (split[0] == "dir") {
+            Directory(split[1])
+        } else {
+            val fileSize = split[0].toIntOrNull() ?: error("expected file size but got ${split[0]}")
+            PlainFile(split[1], fileSize)
         }
-
-        if (line.startsWith("dir")) {
-            val directoryName = line.drop(4)
-            val directory = Directory(directoryName, currentEntry)
-            currentEntry.addChild(directory)
-        }
+        pwd.addChild(file)
     }
 
-    val sizeList = mutableListOf<Int>()
-    root.size(sizeList)
+    val collector = DirectorySizeCollector()
+    root.accept(collector)
 
     // part 1
-    println(sizeList.filter { it < 100_000 }.sum())
+    println(collector.list.filter { it < 100_000 }.sum())
 
     // part 2
-    val freeSpaceSize = 70_000_000 - sizeList.last()
-    val spaceToFree = 30_000_000 - freeSpaceSize
-    println(sizeList.filter { it > spaceToFree }.minBy { it - spaceToFree })
+    val freeSpace = 70_000_000 - collector.total()
+    val spaceToFree = 30_000_000 - freeSpace
+    println(collector.list.filter { it > spaceToFree }.minBy { it - spaceToFree })
 }
 
 fun main() {
