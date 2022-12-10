@@ -5,12 +5,6 @@ import java.io.InputStreamReader
 fun day6(size: Int) {
     val buffer = ArrayDeque<Int>()
 
-    fun append(char: Int) {
-        if (buffer.size < 4) {
-            buffer.addLast(char)
-        }
-    }
-
     var counter = 0;
     InputStreamReader(System.`in`).use { reader ->
         while (true) {
