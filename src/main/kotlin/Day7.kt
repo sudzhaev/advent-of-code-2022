@@ -12,14 +12,12 @@ interface FileVisitor<T> {
 }
 
 class PlainFile(override val name: String, val size: Int) : File {
-
     override fun <T> accept(visitor: FileVisitor<T>): T {
         return visitor.visit(this)
     }
 }
 
 class Directory(override val name: String) : File {
-
     val children = mutableMapOf<String, File>()
 
     override fun <T> accept(visitor: FileVisitor<T>): T {
