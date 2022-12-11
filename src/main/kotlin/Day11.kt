@@ -2,9 +2,14 @@ typealias MonkeyId = Int
 
 class MonkeyTest(
     val divisibleBy: Long,
-    val targetOnTrue: MonkeyId,
-    val targetOnFalse: MonkeyId
-)
+    private val targetOnTrue: MonkeyId,
+    private val targetOnFalse: MonkeyId
+) {
+
+    fun getTargetMonkey(item: Long): MonkeyId {
+        return if (item % divisibleBy == 0L) targetOnTrue else targetOnFalse
+    }
+}
 
 data class Monkey(
     val id: MonkeyId,
@@ -27,11 +32,8 @@ class MonkeyBusiness(
                 for (item in monkey.items) {
                     val inspectedItem = monkey.operation(item)
                     val relaxedItem = relax(inspectedItem)
-                    if (relaxedItem % monkey.test.divisibleBy == 0L) {
-                        get(monkey.test.targetOnTrue).items += relaxedItem
-                    } else {
-                        get(monkey.test.targetOnFalse).items += relaxedItem
-                    }
+                    val targetMonkey = monkey.test.getTargetMonkey(relaxedItem)
+                    get(targetMonkey).items += relaxedItem
                 }
                 inspectionRate.merge(monkey.id, monkey.items.size.toLong(), Long::plus)
                 monkey.items.clear()
@@ -72,7 +74,7 @@ fun readMonkeys(): Map<MonkeyId, Monkey> {
     }
 
     fun parseMonkey(monkeyDescriptor: List<String>): Monkey {
-        val monkeyId = monkeyDescriptor[0].substring("Monkey ".length).trim(':').toInt()
+        val monkeyId = monkeyDescriptor[0].substring("Monkey ".length).dropLast(1).toInt()
         val items = monkeyDescriptor[1].substring("  Starting items: ".length)
             .split(", ")
             .map { it.toLong() }
@@ -107,8 +109,8 @@ fun day11part1() {
 fun day11part2() {
     val monkeyMap = readMonkeys()
 
-    val leastCommonMultiple = monkeyMap.values.map { it.test.divisibleBy }.reduce(Long::times)
-    val monkeyBusiness = MonkeyBusiness(monkeyMap) { it % leastCommonMultiple }
+    val commonMultiple = monkeyMap.values.map { it.test.divisibleBy }.reduce(Long::times)
+    val monkeyBusiness = MonkeyBusiness(monkeyMap) { it % commonMultiple }
     monkeyBusiness.execute(10_000)
     println(monkeyBusiness.level())
 }
