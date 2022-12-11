@@ -1,7 +1,7 @@
 import java.io.InputStreamReader
 
 
-fun day8part1(grid: Array<List<Int>>) {
+fun day8part1(grid: List<List<Int>>) {
     data class Tree(val x: Int, val y: Int)
 
     fun findVisibleTrees(trees: List<Int>, treeFactory: (Int) -> Tree): Set<Tree> {
@@ -29,7 +29,7 @@ fun day8part1(grid: Array<List<Int>>) {
     println(visibleTrees.size)
 }
 
-private fun day8part2(grid: Array<List<Int>>) {
+private fun day8part2(grid: List<List<Int>>) {
     fun List<Int>.countScenicScore(indices: IntProgression, height: Int): Int {
         var counter = 0
         for (i in indices) {
@@ -73,7 +73,7 @@ fun day8() {
         .split("\n")
         .dropLast(1)
         .map { it.map(Char::digitToInt) }
-        .toTypedArray()
+        .toList()
 
     day8part1(grid)
     day8part2(grid)

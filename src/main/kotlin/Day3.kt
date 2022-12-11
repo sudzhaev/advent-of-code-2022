@@ -1,5 +1,3 @@
-import java.io.InputStreamReader
-
 // https://adventofcode.com/2022/day/3
 
 fun Char.toPriority(): Int {
@@ -31,12 +29,6 @@ fun day3part1() {
 
 
 fun day3part2() {
-    fun chunkReadStdin(chunkSize: Int, block: (List<String>) -> Unit) {
-        InputStreamReader(System.`in`).useLines { lines ->
-            lines.windowed(size = chunkSize, step = chunkSize).forEach(block)
-        }
-    }
-
     fun findPriority(lines: List<String>): Int {
         val frequencyMap = IntArray(52)
         for (line in lines) {
