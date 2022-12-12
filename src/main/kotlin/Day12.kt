@@ -9,41 +9,33 @@ data class Day12Input(
     val end: Coordinate
 )
 
-class BFS(
-    private val heightMap: List<List<Char>>,
-    private val start: Coordinate,
-    private val end: Coordinate
-) {
+interface TraverseStrategy {
+    fun stop(node: Traversal.Node): Boolean
+    fun canTraverse(source: Char, target: Char): Boolean
+}
 
-    private data class Node(
-        val coordinate: Coordinate,
-        val value: Char,
-        val distance: Int
-    )
+class Traversal(private val heightMap: List<List<Char>>) {
+    data class Node(val coordinate: Coordinate, val value: Char, val distance: Int)
 
-    fun distance(): Int {
+    fun distance(start: Coordinate, strategy: TraverseStrategy): Int {
         val queue: Queue<Node> = LinkedList()
-        queue += Node(start, 'a', 0)
+        queue += Node(start, heightMap[start], 0)
 
         val visited = mutableSetOf<Coordinate>()
         visited += start
 
         while (queue.isNotEmpty()) {
-            val (coordinate, value, distance) = queue.poll()
-            if (coordinate == end) {
-                return distance
+            val node = queue.poll()
+            if (strategy.stop(node)) {
+                return node.distance
             }
-            queue += coordinate.neighbours()
+            queue += node.coordinate.neighbours()
                 .filter { it !in visited }
-                .filter { transitionExists(source = value, target = heightMap[it]) }
+                .filter { strategy.canTraverse(source = node.value, target = heightMap[it]) }
                 .onEach { visited += it }
-                .map { Node(it, heightMap[it], distance + 1) }
+                .map { Node(it, heightMap[it], node.distance + 1) }
         }
         return -1
-    }
-
-    private fun transitionExists(source: Char, target: Char): Boolean {
-        return target - source <= 1
     }
 
     private fun Coordinate.neighbours(): List<Coordinate> {
@@ -99,10 +91,27 @@ fun parseDay12Input(): Day12Input {
 
 fun day12() {
     val (heightMap, start, end) = parseDay12Input()
-    val bfs = BFS(heightMap, start, end)
-    println(bfs.distance())
-}
+    val traversal = Traversal(heightMap)
 
-fun main() {
-    day12()
+    val part1strategy = object : TraverseStrategy {
+        override fun stop(node: Traversal.Node): Boolean {
+            return node.coordinate == end
+        }
+
+        override fun canTraverse(source: Char, target: Char): Boolean {
+            return target - source <= 1
+        }
+    }
+    println("part1: ${traversal.distance(start, part1strategy)}")
+
+    val part2strategy = object : TraverseStrategy {
+        override fun stop(node: Traversal.Node): Boolean {
+            return node.value == 'a'
+        }
+
+        override fun canTraverse(source: Char, target: Char): Boolean {
+            return target - source >= -1
+        }
+    }
+    println("part2: ${traversal.distance(end, part2strategy)}")
 }
