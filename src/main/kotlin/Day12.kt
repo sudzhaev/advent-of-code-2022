@@ -1,23 +1,14 @@
 import java.util.*
 
-const val START = 'S'
-const val END = 'E'
-
-data class Day12Input(
-    val heightMap: List<List<Char>>,
-    val start: Coordinate,
-    val end: Coordinate
-)
-
-interface TraverseStrategy {
-    fun stop(node: Traversal.Node): Boolean
-    fun canTraverse(source: Char, target: Char): Boolean
-}
-
-class Traversal(private val heightMap: List<List<Char>>) {
+class Traverser(private val heightMap: List<List<Char>>) {
     data class Node(val coordinate: Coordinate, val value: Char, val distance: Int)
 
-    fun distance(start: Coordinate, strategy: TraverseStrategy): Int {
+    interface Strategy {
+        fun stop(node: Node): Boolean
+        fun canTraverse(source: Char, target: Char): Boolean
+    }
+
+    fun distance(start: Coordinate, strategy: Strategy): Int {
         val queue: Queue<Node> = LinkedList()
         queue += Node(start, heightMap[start], 0)
 
@@ -38,63 +29,64 @@ class Traversal(private val heightMap: List<List<Char>>) {
         return -1
     }
 
-    private fun Coordinate.neighbours(): List<Coordinate> {
-        return listOf(x - 1 to y, x + 1 to y, x to y + 1, x to y - 1)
+    private fun Coordinate.neighbours(): List<Coordinate> =
+        listOf(x - 1 to y, x + 1 to y, x to y + 1, x to y - 1)
             .filter { it in heightMap }
-    }
 
-    operator fun <Char> List<List<Char>>.get(coordinate: Coordinate): Char {
-        return this[coordinate.x][coordinate.y]
-    }
+    operator fun <Char> List<List<Char>>.get(coordinate: Coordinate): Char =
+        this[coordinate.x][coordinate.y]
 
-    operator fun List<List<Char>>.contains(coordinate: Coordinate): Boolean {
-        return coordinate.x >= 0 && coordinate.y >= 0
+    operator fun List<List<Char>>.contains(coordinate: Coordinate): Boolean =
+        coordinate.x >= 0 && coordinate.y >= 0
                 && coordinate.x < size && coordinate.y < this[coordinate.x].size
-    }
-
 }
 
-fun parseDay12Input(): Day12Input {
-    val heightMap = mutableListOf<List<Char>>()
-    var start: Coordinate? = null
-    var end: Coordinate? = null
-
-    fun initStart(rowNum: Int, row: MutableList<Char>) {
-        if (start != null) return
-        val startIdx = row.indexOf(START)
-        if (startIdx != -1) {
-            start = rowNum to startIdx
-            row[startIdx] = 'a'
-        }
-    }
-
-    fun initEnd(rowNum: Int, row: MutableList<Char>) {
-        if (end != null) return
-        val endIdx = row.indexOf(END)
-        if (endIdx != -1) {
-            end = rowNum to endIdx
-            row[endIdx] = 'z'
-        }
-    }
-
-    var rowNum = 0
-    readStdin { line ->
-        val row = line.toMutableList()
-        heightMap += row
-        initStart(rowNum, row)
-        initEnd(rowNum, row)
-        rowNum++
-    }
-
-    return Day12Input(heightMap, start!!, end!!)
-}
 
 fun day12() {
-    val (heightMap, start, end) = parseDay12Input()
-    val traversal = Traversal(heightMap)
+    fun parseInput(): Triple<List<List<Char>>, Coordinate, Coordinate> {
+        val heightMap = mutableListOf<List<Char>>()
+        var start: Coordinate? = null
+        var end: Coordinate? = null
 
-    val part1strategy = object : TraverseStrategy {
-        override fun stop(node: Traversal.Node): Boolean {
+        fun initStart(rowNum: Int, row: MutableList<Char>) {
+            if (start != null) return
+            val startIdx = row.indexOf('S')
+            if (startIdx != -1) {
+                start = rowNum to startIdx
+                row[startIdx] = 'a'
+            }
+        }
+
+        fun initEnd(rowNum: Int, row: MutableList<Char>) {
+            if (end != null) return
+            val endIdx = row.indexOf('E')
+            if (endIdx != -1) {
+                end = rowNum to endIdx
+                row[endIdx] = 'z'
+            }
+        }
+
+        var rowNum = 0
+        readStdin { line ->
+            val row = line.toMutableList()
+            initStart(rowNum, row)
+            initEnd(rowNum, row)
+            heightMap += row
+            rowNum++
+        }
+
+        return Triple(
+            heightMap,
+            start ?: error("start not initialized"),
+            end ?: error("end not initialized")
+        )
+    }
+
+    val (heightMap, start, end) = parseInput()
+    val traverser = Traverser(heightMap)
+
+    val part1strategy = object : Traverser.Strategy {
+        override fun stop(node: Traverser.Node): Boolean {
             return node.coordinate == end
         }
 
@@ -102,10 +94,10 @@ fun day12() {
             return target - source <= 1
         }
     }
-    println("part1: ${traversal.distance(start, part1strategy)}")
+    println("part1: ${traverser.distance(start, part1strategy)}")
 
-    val part2strategy = object : TraverseStrategy {
-        override fun stop(node: Traversal.Node): Boolean {
+    val part2strategy = object : Traverser.Strategy {
+        override fun stop(node: Traverser.Node): Boolean {
             return node.value == 'a'
         }
 
@@ -113,5 +105,9 @@ fun day12() {
             return target - source >= -1
         }
     }
-    println("part2: ${traversal.distance(end, part2strategy)}")
+    println("part2: ${traverser.distance(end, part2strategy)}")
+}
+
+fun main() {
+    day12()
 }
