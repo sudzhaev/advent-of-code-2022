@@ -1,11 +1,11 @@
 import java.util.*
 
-sealed interface Packet {
+sealed interface Packet : Comparable<Packet> {
     data class Number(val value: Int) : Packet {
-        override fun isBefore(other: Packet): Int {
+        override fun compareTo(other: Packet): Int {
             return when (other) {
                 is Number -> value.compareTo(other.value)
-                is Array -> asArray() isBefore other
+                is Array -> asArray() compareTo other
             }
         }
 
@@ -19,16 +19,16 @@ sealed interface Packet {
     }
 
     data class Array(val values: List<Packet>) : Packet {
-        override fun isBefore(other: Packet): Int {
+        override fun compareTo(other: Packet): Int {
             return when (other) {
-                is Number -> isBefore(other.asArray())
+                is Number -> compareTo(other.asArray())
                 is Array -> {
                     val thisSize = values.size
                     val otherSize = other.values.size
                     for (i in 0 until minOf(thisSize, otherSize)) {
                         val thisValue = values[i]
                         val otherValue = other.values[i]
-                        val comparison = thisValue isBefore otherValue
+                        val comparison = thisValue compareTo otherValue
                         if (comparison != 0) {
                             return comparison
                         }
@@ -39,79 +39,77 @@ sealed interface Packet {
         }
 
         override fun toString(): String {
-            return "[" + values.joinToString { it.toString() } + "]"
+            return "[${values.joinToString { it.toString() }}]"
         }
     }
-
-    infix fun isBefore(other: Packet): Int
 }
 
-fun parsePacket(packet: String): Pair<Packet, Int> {
-    val list = mutableListOf<Packet>()
-    var number: Int? = null
-    var offset = 0
-    for (i in packet.indices) {
-        val actualIdx = i + offset
-        if (actualIdx == packet.length) {
-            break
-        }
-        when (val char = packet[actualIdx]) {
-            '[' -> {
-                val (value, newOffset) = parsePacket(packet.substring(actualIdx + 1))
-                list += value
-                offset += newOffset
+fun parsePacket(packet: String): Packet {
+    fun parseImpl(packet: String): Pair<Packet, Int> {
+        val list = mutableListOf<Packet>()
+        var number: Int? = null
+        var offset = 0
+        for (i in packet.indices) {
+            val actualIdx = i + offset
+            if (actualIdx == packet.length) {
+                break
             }
-
-            ']' -> {
-                if (number != null) {
-                    list += Packet.Number(number)
+            when (val char = packet[actualIdx]) {
+                '[' -> {
+                    val (value, newOffset) = parseImpl(packet.substring(actualIdx + 1))
+                    list += value
+                    offset += newOffset
                 }
-                return Pair(Packet.Array(list), actualIdx + 1)
-            }
 
-            ',' -> {
-                if (number != null) {
-                    list += Packet.Number(number)
-                    number = null
+                ']' -> {
+                    if (number != null) {
+                        list += Packet.Number(number)
+                    }
+                    return Pair(Packet.Array(list), actualIdx + 1)
+                }
+
+                ',' -> {
+                    if (number != null) {
+                        list += Packet.Number(number)
+                        number = null
+                    }
+                }
+
+                else -> {
+                    number = (number ?: 0) * 10 + char.digitToInt()
                 }
             }
-
-            else -> {
-                number = (number ?: 0) * 10 + char.digitToInt()
-            }
         }
+        check(list.size == 1)
+        return list.first() to packet.length
     }
-    return list.first() to packet.length
+
+    return parseImpl(packet).first
 }
 
 fun day13() {
     fun parse(lines: List<String>): Pair<Packet, Packet> {
         val packet1 = lines[0]
         val packet2 = lines[1]
-        return parsePacket(packet1).first to parsePacket(packet2).first
+        return parsePacket(packet1) to parsePacket(packet2)
     }
 
     var totalSum = 0
-    var index = 1
-    val treeSet = TreeSet<Packet> { a, b -> a isBefore b }
-    val divider1 = Packet.Array(listOf(Packet.Number(2))).also { treeSet += it }
-    val divider2 = Packet.Number(6).also { treeSet += it }
+    val orderedPackets = TreeSet<Packet>()
+    val divider1 = Packet.Array(listOf(Packet.Number(2))).also { orderedPackets += it }
+    val divider2 = Packet.Array(listOf(Packet.Number(6))).also { orderedPackets += it }
 
+    var index = 1
     chunkReadStdin(3) { lines ->
         val (value1, value2) = parse(lines)
-        if (value1 isBefore value2 == -1) {
+        if (value1 < value2) {
             totalSum += index
         }
-        treeSet += value1
-        treeSet += value2
+        orderedPackets += value1
+        orderedPackets += value2
         index++
     }
     println("sum: $totalSum")
-    treeSet.forEachIndexed {idx, value -> println("${idx + 1}: $value") }
-    val decoderKey = (treeSet.indexOf(divider1) + 1) * (treeSet.indexOf(divider2) + 1)
+    val decoderKey = (orderedPackets.indexOf(divider1) + 1) * (orderedPackets.indexOf(divider2) + 1)
     println("key: $decoderKey")
-}
-
-fun main() {
-    day13()
 }
