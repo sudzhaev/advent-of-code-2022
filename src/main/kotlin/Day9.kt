@@ -1,13 +1,6 @@
 import kotlin.math.absoluteValue
 import kotlin.math.sign
 
-typealias Coordinate = Pair<Int, Int>
-
-val Coordinate.x
-    get() = first
-val Coordinate.y
-    get() = second
-
 private val offsetMap = mapOf(
     'R' to (1 to 0),
     'L' to (-1 to 0),

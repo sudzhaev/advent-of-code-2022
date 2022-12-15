@@ -1,51 +1,52 @@
 import kotlin.math.abs
 
-const val MANHATTAN_PI = 4
+fun distance(coordinate1: Coordinate, coordinate2: Coordinate): Int {
+    return abs(coordinate1.x - coordinate2.x) + abs(coordinate1.y - coordinate2.y)
+}
 
 data class Circle(val center: Coordinate, val radius: Int) {
 
-    fun contains(coordinate: Coordinate): Boolean {
-        return abs(center.x - coordinate.x) + abs(center.y - coordinate.y) <= radius
-    }
-}
-
-data class Sensor(val x: Int, val y: Int) {
-
-    fun distanceTo(beacon: Beacon): Int {
-        return abs(x - beacon.x) + abs(y - beacon.y)
+    operator fun contains(coordinate: Coordinate): Boolean {
+        return distance(center, coordinate) <= radius
     }
 
-    fun circle(radius: Int): Set<Coordinate> {
-        val circle = LinkedHashSet<Coordinate>(2 * MANHATTAN_PI * radius)
-        var yDeviation = 0
-        for (currentX in x - radius..x + radius) {
-            circle += currentX to y + yDeviation
-            circle += currentX to y - yDeviation
-            if (currentX >= x) {
-                yDeviation--
-            } else {
-                yDeviation++
-            }
+    fun points(y: Int): List<Int> {
+        val yDiff = abs(center.y - y)
+        if (yDiff > radius) {
+            return listOf()
         }
-        return circle
+        val xDeviance = if (yDiff == radius) 0 else radius - yDiff
+        return (center.x - xDeviance..center.x + xDeviance).toList()
     }
 }
 
-data class Beacon(val x: Int, val y: Int) {
-    fun asCoordinate() = x to y
-}
-
-fun day15() {
-    fun parse(line: String): Pair<Sensor, Beacon> {
+fun day15(yTarget: Int, fieldSize: Int) {
+    fun parse(line: String): Pair<Coordinate, Coordinate> {
         val split = line.split(" ")
         val sensorX = split[2].drop(2).dropLast(1).toInt()
         val sensorY = split[3].drop(2).dropLast(1).toInt()
         val beaconX = split[8].drop(2).dropLast(1).toInt()
         val beaconY = split[9].drop(2).toInt()
-        return Sensor(sensorX, sensorY) to Beacon(beaconX, beaconY)
+        return (sensorX to sensorY) to (beaconX to beaconY)
     }
 
-    val targetY = 2_000_000
+    fun findDistressBeacon(circles: MutableList<Circle>, fieldSize: Int): Coordinate {
+        for (x in 0..fieldSize) {
+            var y = 0
+            while (y <= fieldSize) {
+                val coordinate = x to y
+                val circle = circles.firstOrNull { coordinate in it }
+                    ?: return coordinate
+                val xDistance = circle.center.x - x
+                y = circle.center.y + circle.radius - xDistance + 1
+            }
+        }
+        error("target beacon not found")
+    }
+
+    fun tuningFrequency(coordinate: Coordinate): Long {
+        return coordinate.x.toLong() * 4_000_000L + coordinate.y.toLong()
+    }
 
     val xValues = mutableSetOf<Int>()
     val xBeaconValues = mutableSetOf<Int>()
@@ -53,51 +54,19 @@ fun day15() {
 
     readStdin { line ->
         val (sensor, beacon) = parse(line)
-        val distance = sensor.distanceTo(beacon)
-        val circle = sensor.circle(distance)
-        circles += Circle(sensor.x to sensor.y, distance)
-        val yCirclePoints = circle.filter { it.y == targetY }
-        if (yCirclePoints.isNotEmpty()) {
-            when (yCirclePoints.size) {
-                1 -> xValues += yCirclePoints[0].x
-                2 -> {
-                    val point1 = yCirclePoints[0]
-                    val point2 = yCirclePoints[1]
-                    for (x in point1.x..point2.x) {
-                        xValues += x
-                    }
-                }
-
-                else -> error("there cannot be more than 2 points")
-            }
-        }
-        if (beacon.y == targetY) {
+        val distance = distance(sensor, beacon)
+        val circle = Circle(sensor, distance)
+        circles += circle
+        xValues += circle.points(yTarget)
+        if (beacon.y == yTarget) {
             xBeaconValues += beacon.x
         }
     }
 
-    println((xValues - xBeaconValues).size)
-
-    var targetBeacon: Coordinate? = null
-    loop@
-    for (x in 0..4_000_000) {
-        var y = 0
-        while (y <= 4_000_000) {
-            val coordinate = x to y
-            val circle = circles.firstOrNull { it.contains(coordinate) }
-            if (circle == null) {
-                targetBeacon = coordinate
-                break@loop
-            }
-
-            val xDistance = circle.center.x - x
-            y = circle.center.y + circle.radius - xDistance + 1
-        }
-    }
-    check(targetBeacon != null) { "target beacon not found" }
-    println(targetBeacon)
+    println("${(xValues - xBeaconValues).size} positions cannot contain a beacon")
+    val beacon = findDistressBeacon(circles, fieldSize)
+    val tuningFrequency = tuningFrequency(beacon)
+    println("distress beacon: $beacon, tuning frequency: $tuningFrequency")
 }
 
-fun main() {
-    day15()
-}
+// day15(2_000_000, 4_000_000)
