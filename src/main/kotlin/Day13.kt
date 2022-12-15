@@ -54,7 +54,11 @@ fun parsePacket(packet: String): Packet {
             if (actualIdx == packet.length) {
                 break
             }
-            when (val char = packet[actualIdx]) {
+            val char = packet[actualIdx]
+            if (char.isWhitespace()) {
+                continue
+            }
+            when (char) {
                 '[' -> {
                     val (value, newOffset) = parseImpl(packet.substring(actualIdx + 1))
                     list += value
@@ -80,8 +84,8 @@ fun parsePacket(packet: String): Packet {
                 }
             }
         }
-        check(list.size == 1)
-        return list.first() to packet.length
+        check(list.size == 1 || number != null)
+        return (list.firstOrNull() ?: Packet.Number(number!!)) to packet.length
     }
 
     return parseImpl(packet).first
