@@ -1,4 +1,4 @@
-fun day14() {
+fun readObstacles(): Set<Coordinate> {
     fun parse(line: String): List<Coordinate> {
         return line.split(" -> ")
             .map { it.split(",") }
@@ -7,10 +7,10 @@ fun day14() {
 
     fun numbersBetween(int1: Int, int2: Int): List<Int> {
         return if (int1 < int2) {
-            (int1..int2).toList()
+            (int1..int2)
         } else {
-            (int1 downTo int2).toList()
-        }
+            (int1 downTo int2)
+        }.toList()
     }
 
     val rocks = mutableSetOf<Coordinate>()
@@ -28,9 +28,53 @@ fun day14() {
             }
         }
     }
+    return rocks
+}
 
-    fun fall(grain: Coordinate, rocks: Set<Coordinate>): Coordinate {
+fun day14part1(obstacles: MutableSet<Coordinate>): Int {
+    fun fall(grain: Coordinate, obstacles: Set<Coordinate>): Coordinate {
         val yDown = grain.y + 1
+        val down = grain.x to yDown
+        if (down !in obstacles) {
+            return down
+        }
+        val left = grain.x - 1 to yDown
+        if (left !in obstacles) {
+            return left
+        }
+        val right = grain.x + 1 to yDown
+        if (right !in obstacles) {
+            return right
+        }
+        return grain
+    }
+
+    val yMax = obstacles.maxOf { it.y }
+
+    var sandCounter = 0
+    while (true) {
+        var position = 500 to 0
+        var nextPosition = fall(position, obstacles)
+        while (position != nextPosition && nextPosition.y < yMax) {
+            position = nextPosition
+            nextPosition = fall(nextPosition, obstacles)
+        }
+        if (nextPosition.y >= yMax) {
+            break
+        }
+        sandCounter++
+        obstacles += nextPosition
+    }
+
+    return sandCounter
+}
+
+fun day14part2(rocks: MutableSet<Coordinate>): Int {
+    fun fall(grain: Coordinate, rocks: Set<Coordinate>, yBottom: Int): Coordinate {
+        val yDown = grain.y + 1
+        if (yDown == yBottom) {
+            return grain
+        }
         val down = grain.x to yDown
         if (down !in rocks) {
             return down
@@ -46,26 +90,28 @@ fun day14() {
         return grain
     }
 
-    val yMax = rocks.maxOf { it.y }
+    val yBottom = rocks.maxOf { it.y } + 2
 
     var sandCounter = 0
     while (true) {
         var position = 500 to 0
-        var nextPosition = fall(position, rocks)
-        while (position != nextPosition && nextPosition.y < yMax) {
+        var nextPosition = fall(position, rocks, yBottom)
+        while (position != nextPosition) {
             position = nextPosition
-            nextPosition = fall(nextPosition, rocks)
-        }
-        if (nextPosition.y >= yMax) {
-            break
+            nextPosition = fall(nextPosition, rocks, yBottom)
         }
         sandCounter++
+        if (position == 500 to 0) {
+            break
+        }
         rocks += nextPosition
     }
 
-    println(sandCounter)
+    return sandCounter
 }
 
 fun main() {
-    day14()
+    val obstacles = readObstacles()
+    println("part1: ${day14part1(obstacles.toMutableSet())}")
+    println("part2: ${day14part2(obstacles.toMutableSet())}")
 }
