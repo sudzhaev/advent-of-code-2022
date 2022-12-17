@@ -70,21 +70,21 @@ fun day14part1(obstacles: MutableSet<Coordinate>): Int {
 }
 
 fun day14part2(rocks: MutableSet<Coordinate>): Int {
-    fun fall(grain: Coordinate, rocks: Set<Coordinate>, yBottom: Int): Coordinate {
+    fun fall(grain: Coordinate, obstacles: Set<Coordinate>, yBottom: Int): Coordinate {
         val yDown = grain.y + 1
         if (yDown == yBottom) {
             return grain
         }
         val down = grain.x to yDown
-        if (down !in rocks) {
+        if (down !in obstacles) {
             return down
         }
         val left = grain.x - 1 to yDown
-        if (left !in rocks) {
+        if (left !in obstacles) {
             return left
         }
         val right = grain.x + 1 to yDown
-        if (right !in rocks) {
+        if (right !in obstacles) {
             return right
         }
         return grain
